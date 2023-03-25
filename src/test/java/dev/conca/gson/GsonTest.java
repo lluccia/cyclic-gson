@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSerializer;
 import org.approvaltests.Approvals;
+import org.approvaltests.JsonApprovals;
 import org.approvaltests.core.Options;
 import org.approvaltests.core.Scrubber;
 import org.approvaltests.scrubbers.RegExScrubber;
@@ -55,7 +56,6 @@ public class GsonTest {
         JsonSerializer<CyclicObject> serializer = new CyclicObjectSerializer();
 
         Gson customGson = new GsonBuilder()
-                .setPrettyPrinting()
                 .registerTypeAdapter(CyclicObject.class, serializer)
                 .create();
 
@@ -69,7 +69,7 @@ public class GsonTest {
         object2.setCyclicObject(object1);
 
         Scrubber objectIdScrubber = new RegExScrubber("#\\d+", n -> "#[id" + n + "]");
-        Approvals.verify(customGson.toJson(object1), new Options(objectIdScrubber));
+        JsonApprovals.verifyJson(customGson.toJson(object1), new Options(objectIdScrubber));
     }
 
 }
