@@ -1,46 +1,56 @@
 package dev.conca.gson;
 
-import com.google.gson.*;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
 import java.lang.reflect.Type;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 public class CyclicObjectSerializer implements JsonSerializer<CyclicObject> {
 
-    private CyclicObject rootObject;
-    private JsonArray jsonObjects;
-
-    private Set<Integer> alreadySerializedIds = new HashSet<>();
+    private CyclicObject firstObject;
+    private JsonObject jsonRoot;
+    private Map<Object, JsonObject> seen = new IdentityHashMap<>();
 
     @Override
-    public JsonElement serialize(CyclicObject cyclicObject, Type type,
-                                 JsonSerializationContext jsonSerializationContext) {
+    public JsonElement serialize(CyclicObject src, Type type, JsonSerializationContext context) {
 
-        if (rootObject == null) {
-            rootObject = cyclicObject;
-            jsonObjects = new JsonArray();
+        if (firstObject == null) {
+            firstObject = src;
+            jsonRoot = new JsonObject();
         }
-
-        int objectId = System.identityHashCode(cyclicObject);
-
-        if (alreadySerializedIds.contains(objectId)) {
-            return null;
+        JsonElement jsonElement = seen.get(src);
+        if (jsonElement != null) {
+            return jsonElement;
         }
+        seen.put(src, createObjectRef(src, type));
+
+        String objectId = createObjectId(src, type);
 
         JsonObject object = new JsonObject();
-        object.addProperty("_id", objectId);
-        object.addProperty("field1", cyclicObject.getField1());
-        object.addProperty("cyclicObject_id", System.identityHashCode(cyclicObject.getCyclicObject()));
+        object.addProperty("field1", src.getField1());
+        object.add("cyclicObject", createObjectRef(src.getCyclicObject(), type));
 
-        alreadySerializedIds.add(objectId);
-        jsonObjects.add(object);
+        context.serialize(src.getCyclicObject());
 
-        jsonSerializationContext.serialize(cyclicObject.getCyclicObject());
+        jsonRoot.add(objectId, object);
 
-        if (rootObject == cyclicObject)
-            return jsonObjects;
+        if (src == firstObject)
+            return jsonRoot;
         else
             return object;
+    }
+
+    private static String createObjectId(CyclicObject src, Type type) {
+        return type.getTypeName() + "#" + System.identityHashCode(src);
+    }
+
+    private JsonObject createObjectRef(CyclicObject src, Type type) {
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("$ref", "/" + createObjectId(src, type));
+        return jsonObject;
     }
 }

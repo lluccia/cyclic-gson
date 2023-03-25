@@ -4,6 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSerializer;
 import org.approvaltests.Approvals;
+import org.approvaltests.core.Options;
+import org.approvaltests.core.Scrubber;
+import org.approvaltests.scrubbers.RegExScrubber;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -57,15 +60,16 @@ public class GsonTest {
                 .create();
 
         CyclicObject object1 = new CyclicObject();
-        object1.setField1("value1");
+        object1.setField1("object1");
 
         CyclicObject object2 = new CyclicObject();
-        object2.setField1("value1");
+        object2.setField1("object2");
 
         object1.setCyclicObject(object2);
         object2.setCyclicObject(object1);
 
-        Approvals.verify(customGson.toJson(object1));
+        Scrubber objectIdScrubber = new RegExScrubber("#\\d+", n -> "#[id" + n + "]");
+        Approvals.verify(customGson.toJson(object1), new Options(objectIdScrubber));
     }
 
 }
