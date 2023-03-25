@@ -1,0 +1,12 @@
+[
+  {
+    "_id": 282821294,
+    "field1": "value1",
+    "cyclicObject_id": 1519736165
+  },
+  {
+    "_id": 1519736165,
+    "field1": "value1",
+    "cyclicObject_id": 282821294
+  }
+]
